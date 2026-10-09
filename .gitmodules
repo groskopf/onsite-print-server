@@ -1,0 +1,3 @@
+[submodule "web-server"]
+	path = web-server
+	url = git@github.com:groskopf/onsite-print-web-server.git
