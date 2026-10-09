@@ -1,6 +1,0 @@
-[submodule "web-server"]
-	path = web-server
-	url = git@github.com:groskopf/onsite-print-web-server.git
-[submodule "database"]
-	path = database
-	url = git@github.com:groskopf/onsite-print-database.git

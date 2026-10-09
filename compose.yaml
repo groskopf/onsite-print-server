@@ -1,3 +1,3 @@
 include:
-  - path: web-server/compose.yaml
-  - path: database/compose.yaml
+  - path: ../onsite-print-web-server/compose.yaml
+  - path: ../onsite-print-database/compose.yaml
