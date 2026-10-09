@@ -1,3 +1,4 @@
 include:
   - path: ../onsite-print-web-server/compose.yaml
   - path: ../onsite-print-database/compose.yaml
+  - path: ../onsite-print-backend/compose.yaml
