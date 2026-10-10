@@ -64,6 +64,21 @@ do not use `down -v` unless you intend to delete it.
 
 ## Publish images
 
+Each publishing script publishes its current `major.minor.patch` tag, then
+increments the patch number in that repo's `.env` **only after the push succeeds**:
+`0.0.1` is published, and `.env` becomes `0.0.2` for the next release.
+Login, build, or push failures leave the version unchanged. Commit the updated
+version files so other machines use the next available version. Do not run
+publishes concurrently or from copies with stale version files.
+
+The incremented version is **not yet published**. For deployment use the tag
+printed in the `Published ...` line, not the new value in `.env`. This also
+means `up --no-build` in a sibling repo will require a previously published tag.
+Scripts do not check whether a registry tag already exists: a retry after an
+interrupted push, or a stale version file, can still overwrite that tag.
+For versions already pushed before enabling this feature, advance `.env` once
+before publishing again to avoid replacing them.
+
 Set a new `IMAGE_TAG` in each changed repo's `.env`. Set `CR_PAT` securely in your
 environment with GHCR `write:packages` permission; never put credentials in git.
 Then publish all five images:
