@@ -1,0 +1,49 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Onsite Print: Start development server",
+			"type": "shell",
+			"command": "docker",
+			"args": [
+				"compose",
+				"-f",
+				"compose.yaml",
+				"-f",
+				"compose.dev.yaml",
+				"up",
+				"-d",
+				"--build",
+				"--wait",
+				"--wait-timeout",
+				"120"
+			],
+			"isBackground": false,
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Onsite Print: Stop development server",
+			"type": "shell",
+			"command": "docker",
+			"args": [
+				"compose",
+				"-f",
+				"compose.yaml",
+				"-f",
+				"compose.dev.yaml",
+				"down"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": []
+		}
+	]
+}

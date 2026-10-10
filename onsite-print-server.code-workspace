@@ -1,0 +1,27 @@
+{
+	"folders": [
+		{
+			"name": "onsite-print-server",
+			"path": "."
+		},
+		{
+			"name": "onsite-print-web-server",
+			"path": "../onsite-print-web-server"
+		},
+		{
+			"name": "onsite-print-attendee",
+			"path": "../onsite-print-attendee"
+		},
+		{
+			"name": "onsite-print-checkin",
+			"path": "../onsite-print-checkin"
+		},
+		{
+			"path": "../onsite-print-database"
+		},
+		{
+			"path": "../onsite-print-backend"
+		}
+	],
+	"settings": {}
+}
