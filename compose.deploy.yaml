@@ -1,10 +1,16 @@
 services:
   nginx:
     image: ghcr.io/groskopf/onsite-print-web-server:${WEB_SERVER_TAG:?Set WEB_SERVER_TAG}
+    environment:
+      TLS_DOMAIN: ${TLS_DOMAIN:-event.onsite-print.dk}
     ports:
-      - "${HTTP_BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-8080}:80"
+      - "${HTTP_BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${HTTP_BIND_ADDRESS:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+    volumes:
+      - letsencrypt:/etc/letsencrypt:ro
+      - acme-webroot:/var/www/certbot:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -17,10 +23,23 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  certbot:
+    image: ghcr.io/groskopf/onsite-print-certbot:${WEB_SERVER_TAG:?Set WEB_SERVER_TAG}
+    environment:
+      TLS_DOMAIN: ${TLS_DOMAIN:-event.onsite-print.dk}
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - acme-webroot:/var/www/certbot
+    depends_on:
+      nginx:
+        condition: service_healthy
+    restart: unless-stopped
+
   attendee:
     image: ghcr.io/groskopf/onsite-print-attendee:${ATTENDEE_TAG:?Set ATTENDEE_TAG}
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/attendee/"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/attendee/"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,7 +48,8 @@ services:
   checkin:
     image: ghcr.io/groskopf/onsite-print-checkin:${CHECKIN_TAG:?Set CHECKIN_TAG}
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/checkin/"]
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/checkin/"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -49,7 +69,13 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v2/health', timeout=4)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v2/health', timeout=4)",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -78,3 +104,5 @@ secrets:
 
 volumes:
   postgres-data:
+  letsencrypt:
+  acme-webroot:
