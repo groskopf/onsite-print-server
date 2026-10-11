@@ -37,7 +37,7 @@ expect_failure() {
 
 for repo in web-server database backend attendee checkin; do
   case "$repo" in
-    web-server) app=nginx ;;
+    web-server) app="nginx certbot" ;;
     database) app=postgres ;;
     *) app="$repo" ;;
   esac
