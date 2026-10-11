@@ -228,8 +228,11 @@ bash check-certificate.sh
 ```
 
 It exits `0` when `live/$TLS_DOMAIN/fullchain.pem` and `privkey.pem` exist in
-the `letsencrypt` volume, and `3` when they are missing. `start-server.sh`
-runs this check first and refuses to start without a certificate.
+the `letsencrypt` volume, and `3` when they are missing. Run this check before
+starting if you are unsure whether a certificate has been set up.
+`start-server.sh` does not run this check automatically; nginx fails to start
+if the required certificate files are missing. Run
+`bash setup-https.sh your-email@example.com` for first-time certificate setup.
 `setup-https.sh` skips issuance and only starts the stack if a certificate
 already exists. This avoids reaching Let's Encrypt rate limits.
 
