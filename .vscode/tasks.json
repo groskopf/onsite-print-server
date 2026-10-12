@@ -2,6 +2,31 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Onsite Print: Run tests",
+			"type": "shell",
+			"command": "bash",
+			"args": ["run-tests.sh"],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [],
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Onsite Print: Run full test suite",
+			"type": "shell",
+			"command": "bash",
+			"args": ["run-tests.sh", "--smoke"],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
 			"label": "Onsite Print: Start development server",
 			"type": "shell",
 			"command": "docker",
