@@ -1,0 +1,79 @@
+services:
+  nginx:
+    # Published web-server 0.0.2; run its bundled HTTP configuration.
+    image: ghcr.io/groskopf/onsite-print-web-server@sha256:6a3439bef30b4e74863bd50229e9f0e0154c3d673ebb3ada25e60f4b2adf820f
+    command: ["nginx", "-g", "daemon off;"]
+    ports:
+      - "127.0.0.1::80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      attendee:
+        condition: service_healthy
+      checkin:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+
+  # Published 0.0.1 releases, pinned independently of sibling source changes.
+  attendee:
+    image: ghcr.io/groskopf/onsite-print-attendee@sha256:23979432838f183aba8b3cabcc3af1a267034c3746d7633f03586210afcdcd1e
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/attendee/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  checkin:
+    image: ghcr.io/groskopf/onsite-print-checkin@sha256:0c76baaa7c81b7dc6d79da8cb6f1fa4b5e8b51c14997be12e28c2aba6830624f
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/checkin/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/groskopf/onsite-print-backend@sha256:32d8c85828373665855cf3c8002f6934496d2159ac1449cc0b55ec55a6245bb3
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: onsite_print
+      DB_USER: onsite_print
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v2/health', timeout=4)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: ghcr.io/groskopf/onsite-print-database@sha256:577c77d77d8657dd94a4278d76b5f52edbd38c0db0d33d7575e8b6ee96aeba6c
+    environment:
+      POSTGRES_USER: onsite_print
+      POSTGRES_DB: onsite_print
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres-test-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onsite_print -d onsite_print"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+secrets:
+  postgres_password:
+    file: ${POSTGRES_PASSWORD_FILE:?Set POSTGRES_PASSWORD_FILE to a test password file}
+
+volumes:
+  postgres-test-data:

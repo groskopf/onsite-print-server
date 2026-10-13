@@ -6,61 +6,48 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      COMPOSE_FILE: compose.test.yaml
+      COMPOSE_PROJECT_NAME: onsite-print-ci
+      POSTGRES_PASSWORD_FILE: ${{ github.workspace }}/postgres-test-password
     steps:
       - name: Check out server
         uses: actions/checkout@v4
-        with:
-          path: onsite-print-server
 
-      - name: Check out web server
-        uses: actions/checkout@v4
-        with:
-          repository: groskopf/onsite-print-web-server
-          path: onsite-print-web-server
-
-      - name: Check out backend
-        uses: actions/checkout@v4
-        with:
-          repository: groskopf/onsite-print-backend
-          path: onsite-print-backend
-
-      - name: Check out database
-        uses: actions/checkout@v4
-        with:
-          repository: groskopf/onsite-print-database
-          path: onsite-print-database
-
-      - name: Check out attendee
-        uses: actions/checkout@v4
-        with:
-          repository: groskopf/onsite-print-attendee
-          path: onsite-print-attendee
-
-      - name: Check out checkin
-        uses: actions/checkout@v4
-        with:
-          repository: groskopf/onsite-print-checkin
-          path: onsite-print-checkin
+      - name: Log in to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Create database password
-        working-directory: ${{ github.workspace }}
         run: |
-          mkdir -p onsite-print-database/secrets
-          openssl rand -base64 32 > onsite-print-database/secrets/postgres_password
+          umask 077
+          openssl rand -base64 32 > "$POSTGRES_PASSWORD_FILE"
+          # Compose file-backed secrets retain host permissions; backend is non-root.
+          chmod 644 "$POSTGRES_PASSWORD_FILE"
 
-      - name: Build and start local stack
-        working-directory: ${{ github.workspace }}/onsite-print-server
-        run: docker compose -f compose.yaml up -d --build --wait --wait-timeout 300
+      - name: Pull and start pinned test stack
+        run: |
+          docker compose pull
+          docker compose up -d --no-build --pull never --wait --wait-timeout 300
 
       - name: Run full test suite
-        working-directory: ${{ github.workspace }}/onsite-print-server
-        run: bash run-tests.sh --smoke
+        run: |
+          address="$(docker compose port nginx 80)"
+          bash run-tests.sh --smoke "http://$address"
 
-      - name: Stop local stack
+      - name: Show stack logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Remove isolated test stack
         if: always()
-        working-directory: ${{ github.workspace }}/onsite-print-server
-        run: docker compose -f compose.yaml down
+        run: |
+          docker compose down -v --remove-orphans
+          rm -f -- "$POSTGRES_PASSWORD_FILE"

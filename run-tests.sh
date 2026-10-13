@@ -8,10 +8,8 @@ if [[ $# -gt 2 || ( $# -gt 0 && "$1" != --smoke ) ]]; then
   exit 1
 fi
 
-for test in frontend-publish-test setup-https-test; do
-  echo "Running $test"
-  bash "$root/tests/$test.sh"
-done
+echo "Running setup-https-test"
+bash "$root/tests/setup-https-test.sh"
 
 if [[ $# -gt 0 ]]; then
   echo "Running smoke-test"

@@ -287,12 +287,32 @@ be accessible to your pull token.
 
 ## Validation
 
-GitHub Actions runs the mocked tests and production-stack smoke test on pushes
-and pull requests using the shared runner, `run-tests.sh`.
+GitHub Actions runs the mocked HTTPS setup test and production-stack smoke test
+on pushes and pull requests using the shared runner, `run-tests.sh`.
+Publishing-script tests run in each image-owning repository's own workflow, so
+they always test the script from the same revision as the tests.
+
+CI pulls the five GHCR images pinned by digest in `compose.test.yaml`: web-server
+0.0.2 and database/backend/attendee/checkin 0.0.1. It does not check out sibling
+repos or build images. This HTTP-only test stack uses a separate Compose project,
+test database volume, generated password, and dynamically assigned loopback port.
+It does not use deployment data, Certbot, or real certificates. CI removes its
+test containers and volume afterward, and prints stack logs on failure.
+
+For private GHCR packages, grant this repository **Actions read access** under
+each package's **Manage Actions access** settings. CI uses `GITHUB_TOKEN` with
+`packages: read`; it does not require a PAT. Fork pull requests may not have
+access to private packages.
+
+After publishing a release, update the relevant image digest and version comment
+in `compose.test.yaml` explicitly. Find the digest with
+`docker pull ghcr.io/groskopf/onsite-print-attendee:<published-tag>` followed by
+`docker image inspect ghcr.io/groskopf/onsite-print-attendee:<published-tag> --format '{{json .RepoDigests}}'`.
+Digest pinning prevents a replaced tag from silently changing the tested image.
 
 In VS Code, use **Terminal > Run Task > Onsite Print: Run tests** for the mocked
-tests. They require the sibling repos but do not start containers, publish
-images, or request certificates.
+test. It does not require sibling repos, start containers, publish images, or
+request certificates.
 
 **Onsite Print: Run full test suite** adds the smoke test against
 `http://localhost:8080`. Start the local production-build preview first
@@ -307,10 +327,25 @@ bash run-tests.sh --smoke
 bash run-tests.sh --smoke https://event.onsite-print.dk
 ```
 
+To smoke-test the same pinned images as CI locally, run this isolated stack
+(log in to GHCR first if the packages are private):
+
+```sh
+export COMPOSE_FILE=compose.test.yaml COMPOSE_PROJECT_NAME=onsite-print-tests
+export POSTGRES_PASSWORD_FILE="$(mktemp)"
+openssl rand -base64 32 > "$POSTGRES_PASSWORD_FILE"
+chmod 644 "$POSTGRES_PASSWORD_FILE" # disposable test secret, readable by non-root backend
+docker compose pull
+docker compose up -d --no-build --pull never --wait --wait-timeout 300
+bash run-tests.sh --smoke "http://$(docker compose port nginx 80)"
+docker compose down -v # deletes only this isolated test project's data
+rm -f -- "$POSTGRES_PASSWORD_FILE"
+unset COMPOSE_FILE COMPOSE_PROJECT_NAME POSTGRES_PASSWORD_FILE
+```
+
 Individual tests and the web-server repo's additional TLS tests:
 
 ```sh
-bash tests/frontend-publish-test.sh # mocked Docker; never uploads images
 bash tests/setup-https-test.sh      # mocked issuance; no live certificate requests
 bash ../onsite-print-web-server/tests/https-test.sh # builds image, tests reload in ~60s
 bash ../onsite-print-web-server/tests/renew-certificates-test.sh
