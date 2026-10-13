@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      COMPOSE_FILE: compose.test.yaml
+      COMPOSE_PROJECT_NAME: onsite-print-ci
+      POSTGRES_PASSWORD_FILE: ${{ github.workspace }}/postgres-test-password
+    steps:
+      - name: Check out server
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Create database password
+        run: |
+          umask 077
+          openssl rand -base64 32 > "$POSTGRES_PASSWORD_FILE"
+          # Compose file-backed secrets retain host permissions; backend is non-root.
+          chmod 644 "$POSTGRES_PASSWORD_FILE"
+
+      - name: Pull and start pinned test stack
+        run: |
+          docker compose pull
+          docker compose up -d --no-build --pull never --wait --wait-timeout 300
+
+      - name: Run full test suite
+        run: |
+          address="$(docker compose port nginx 80)"
+          bash run-tests.sh --smoke "http://$address"
+
+      - name: Show stack logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Remove isolated test stack
+        if: always()
+        run: |
+          docker compose down -v --remove-orphans
+          rm -f -- "$POSTGRES_PASSWORD_FILE"

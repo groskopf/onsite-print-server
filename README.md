@@ -236,19 +236,8 @@ if the required certificate files are missing. Run
 `setup-https.sh` skips issuance and only starts the stack if a certificate
 already exists. This avoids reaching Let's Encrypt rate limits.
 
-### Removing an old setup or certificate
-
-If the old `compose.https.yaml` override is still running, stop it once using
-the old command. Then remove the old local override and TLS files:
-
-```sh
-docker compose --env-file .env.production -f compose.deploy.yaml -f compose.https.yaml down
-rm -f compose.https.yaml && rm -rf tls
-git status   # confirm that no other local changes remain
-```
-
-`bash start-server.sh` reuses the existing certificate volume. If
-containers from the old setup remain, run
+`bash start-server.sh` reuses the existing certificate volume. If containers
+from an earlier deployment remain, run
 `docker compose --env-file .env.production -f compose.deploy.yaml up -d --remove-orphans`.
 
 To replace a certificate, such as a wrong domain or a staging certificate,
@@ -293,16 +282,70 @@ same tag. Set `WEB_SERVER_TAG` on the server to that published tag, update this
 repo, then run `bash pull-images.sh` and `bash start-server.sh`.
 The existing `letsencrypt` and `acme-webroot` volumes are reused when the Compose
 project name/directory is unchanged. Do not request another certificate if one
-already exists (`bash check-certificate.sh`). See
-[Removing an old setup or certificate](#removing-an-old-setup-or-certificate).
-The new Certbot GHCR package must be accessible to your pull token.
+already exists (`bash check-certificate.sh`). The new Certbot GHCR package must
+be accessible to your pull token.
 
 ## Validation
 
+GitHub Actions runs the mocked HTTPS setup test and production-stack smoke test
+on pushes and pull requests using the shared runner, `run-tests.sh`.
+Publishing-script tests run in each image-owning repository's own workflow, so
+they always test the script from the same revision as the tests.
+
+CI pulls the five GHCR images pinned by digest in `compose.test.yaml`: web-server
+0.0.2 and database/backend/attendee/checkin 0.0.1. It does not check out sibling
+repos or build images. This HTTP-only test stack uses a separate Compose project,
+test database volume, generated password, and dynamically assigned loopback port.
+It does not use deployment data, Certbot, or real certificates. CI removes its
+test containers and volume afterward, and prints stack logs on failure.
+
+For private GHCR packages, grant this repository **Actions read access** under
+each package's **Manage Actions access** settings. CI uses `GITHUB_TOKEN` with
+`packages: read`; it does not require a PAT. Fork pull requests may not have
+access to private packages.
+
+After publishing a release, update the relevant image digest and version comment
+in `compose.test.yaml` explicitly. Find the digest with
+`docker pull ghcr.io/groskopf/onsite-print-attendee:<published-tag>` followed by
+`docker image inspect ghcr.io/groskopf/onsite-print-attendee:<published-tag> --format '{{json .RepoDigests}}'`.
+Digest pinning prevents a replaced tag from silently changing the tested image.
+
+In VS Code, use **Terminal > Run Task > Onsite Print: Run tests** for the mocked
+test. It does not require sibling repos, start containers, publish images, or
+request certificates.
+
+**Onsite Print: Run full test suite** adds the smoke test against
+`http://localhost:8080`. Start the local production-build preview first
+(`docker compose up -d --build`); the smoke test does not support the hot-reload
+development stack. Neither test task starts or stops containers.
+
+The same runner can be used from the terminal:
+
 ```sh
-bash tests/frontend-publish-test.sh # mocked Docker; never uploads images
-bash tests/pull-images-test.sh      # mocked Docker; no registry login or downloads
-bash tests/server-scripts-test.sh   # mocked Docker; does not start or stop containers
+bash run-tests.sh
+bash run-tests.sh --smoke
+bash run-tests.sh --smoke https://event.onsite-print.dk
+```
+
+To smoke-test the same pinned images as CI locally, run this isolated stack
+(log in to GHCR first if the packages are private):
+
+```sh
+export COMPOSE_FILE=compose.test.yaml COMPOSE_PROJECT_NAME=onsite-print-tests
+export POSTGRES_PASSWORD_FILE="$(mktemp)"
+openssl rand -base64 32 > "$POSTGRES_PASSWORD_FILE"
+chmod 644 "$POSTGRES_PASSWORD_FILE" # disposable test secret, readable by non-root backend
+docker compose pull
+docker compose up -d --no-build --pull never --wait --wait-timeout 300
+bash run-tests.sh --smoke "http://$(docker compose port nginx 80)"
+docker compose down -v # deletes only this isolated test project's data
+rm -f -- "$POSTGRES_PASSWORD_FILE"
+unset COMPOSE_FILE COMPOSE_PROJECT_NAME POSTGRES_PASSWORD_FILE
+```
+
+Individual tests and the web-server repo's additional TLS tests:
+
+```sh
 bash tests/setup-https-test.sh      # mocked issuance; no live certificate requests
 bash ../onsite-print-web-server/tests/https-test.sh # builds image, tests reload in ~60s
 bash ../onsite-print-web-server/tests/renew-certificates-test.sh
