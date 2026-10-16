@@ -14,6 +14,31 @@ configuration is needed. nginx preserves each app's path prefix.
 
 ## Local development
 
+### VS Code dev containers
+
+Development containers belong to the repositories containing the application
+code, rather than this Compose orchestration repository:
+
+- [onsite-print-backend](../onsite-print-backend/README.md#develop): Python 3.12,
+  backend dependencies, pytest/httpx, Docker tools, and PostgreSQL client tools.
+- [onsite-print-attendee](../onsite-print-attendee/README.md#start-in-the-dev-container):
+  Node.js 24, npm, and ESLint.
+- [onsite-print-checkin](../onsite-print-checkin/README.md#start-in-the-dev-container):
+  Node.js 24, npm, and ESLint.
+
+Install Docker and the VS Code **Dev Containers** extension, open the relevant
+repository folder in its own VS Code window, and run **Dev Containers: Reopen
+in Container**. Reopening does not start the full application stack or reset data.
+Run the Compose tasks below from this repository on the host.
+
+The backend's Python source is in `../onsite-print-backend/app/`, not in this
+repository. The multi-root
+[onsite-print-server.code-workspace](onsite-print-server.code-workspace)
+is still available for a host-side overview; opening individual repositories
+selects their respective development environments.
+
+### Starting the application stack
+
 Open this repo in VS Code and press **Ctrl+Shift+B** to run **Onsite Print: Start
 development server**. It builds the images, starts the hot-reload stack, and waits
 for startup. Containers keep running after the task completes. Use **Terminal >
