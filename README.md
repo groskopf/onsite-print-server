@@ -97,32 +97,36 @@ do not use `down -v` unless you intend to delete it.
 
 ## Publish images
 
-Each publishing script publishes its current `major.minor.patch` tag, then
-increments the patch number in that repo's `.env` **only after the push succeeds**:
-`0.0.1` is published, and `.env` becomes `0.0.2` for the next release.
-Login, build, or push failures leave the version unchanged. Commit the updated
-version files so other machines use the next available version. Do not run
-publishes concurrently or from copies with stale version files.
+Each image-owning repo (`web-server`, `database`, `backend`, `attendee`,
+`checkin`, `admin`, `event`) publishes its own image(s) from its current
+`major.minor.patch` tag in `.env`, then increments the patch number **only
+after the push succeeds**: `0.0.1` is published, and `.env` becomes `0.0.2`
+for the next release. Login, build, or push failures leave the version
+unchanged.
 
-The incremented version is **not yet published**. For deployment use the tag
-printed in the `Published ...` line, not the new value in `.env`. This also
-means `up --no-build` in a sibling repo will require a previously published tag.
-Scripts do not check whether a registry tag already exists: a retry after an
-interrupted push, or a stale version file, can still overwrite that tag.
-For versions already pushed before enabling this feature, advance `.env` once
-before publishing again to avoid replacing them.
+The recommended way to publish is to trigger that repo's **Publish release**
+GitHub Actions workflow (`workflow_dispatch` only, run from `main`) from its
+Actions tab. It builds and pushes the image(s) to GHCR using the built-in
+`GITHUB_TOKEN`, tags the published commit on `main` with the published
+version (no `v` prefix), and commits the incremented `.env` back to `main` —
+no local credentials or manual commits needed. Each repo's README documents
+the one-time branch-protection bypass this requires.
 
-Set a new `IMAGE_TAG` in each changed repo's `.env`. Set `CR_PAT` securely in your
-environment with GHCR `write:packages` permission; never put credentials in git.
-Then publish images from all seven image-owning repos (the web-server repo publishes both nginx
-and Certbot, for eight images total):
+Alternatively, publish locally: set a new `IMAGE_TAG` in the changed repo's
+`.env`, set `CR_PAT` securely in your environment with GHCR `write:packages`
+permission, and run `bash docker-push.sh` in that repo (the web-server repo
+publishes both nginx and Certbot). The incremented version is **not yet
+published**; for deployment use the tag printed in the `Published ...` line,
+not the new value in `.env`. This also means `up --no-build` in a sibling
+repo will require a previously published tag. Scripts do not check whether a
+registry tag already exists: a retry after an interrupted push, or a stale
+version file, can still overwrite that tag. For versions already pushed
+before enabling this feature, advance `.env` once before publishing again to
+avoid replacing them. Commit the updated version file so other machines use
+the next available version. Do not run publishes concurrently or from copies
+with stale version files, and never put credentials in git.
 
-```sh
-bash publish-images.sh
-```
-
-Alternatively run `bash docker-push.sh` in just the changed repo. The React
-images contain built static assets and nginx, not Node or Vite.
+The React images contain built static assets and nginx, not Node or Vite.
 Use unique release tags; do not overwrite a deployed tag.
 
 ## Deploy to a server
