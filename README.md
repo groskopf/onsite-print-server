@@ -129,6 +129,15 @@ with stale version files, and never put credentials in git.
 The React images contain built static assets and nginx, not Node or Vite.
 Use unique release tags; do not overwrite a deployed tag.
 
+Publishing an image does not deploy it. `.env.production` in this repo is the
+single source of truth for which published version of each image is deployed,
+and it is committed directly to git (not a `.example` template) specifically
+so that checking out a commit of this repo pins the exact image versions it
+deploys. After publishing a new version, manually set the matching `*_TAG` in
+`.env.production` to that version and commit the change here — there is no
+sibling-repo clone or extra sync script involved; see "Deploy to a server"
+below to roll the change out.
+
 ## Deploy to a server
 
 Deployment uses HTTPS by default. The server needs Docker with the Compose
@@ -180,7 +189,8 @@ App and backend containers are internal; deployment does not publish PostgreSQL.
 
 `HTTP_BIND_ADDRESS` and `HTTP_PORT` in `.env.production` configure the binding.
 Set them to `0.0.0.0` and `80`; `HTTPS_PORT` defaults to `443`.
-Changing the example file alone has no effect on an existing `.env.production`.
+Edits only take effect on the server after pulling the updated `.env.production`
+commit and restarting the stack (`bash start-server.sh`).
 Local development remains on port 8080.
 
 The API currently has no authentication; HTTPS encrypts traffic but does not
