@@ -15,6 +15,7 @@ jobs:
     env:
       COMPOSE_FILE: compose.test.yaml
       COMPOSE_PROJECT_NAME: onsite-print-ci
+      SMOKE_APPS: attendee checkin
       POSTGRES_PASSWORD_FILE: ${{ github.workspace }}/postgres-test-password
     steps:
       - name: Check out server

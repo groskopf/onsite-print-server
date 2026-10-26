@@ -4,7 +4,9 @@ set -euo pipefail
 base="${1:-http://localhost:8080}"
 base="${base%/}"
 
-for app in attendee checkin; do
+# Pinned-release CI can select only apps available in those historical images.
+read -r -a apps <<< "${SMOKE_APPS:-attendee checkin admin}"
+for app in "${apps[@]}"; do
   [[ "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$base/$app")" == 308 ]]
   html="$(curl --fail --silent --show-error "$base/$app/")"
   asset="$(printf '%s\n' "$html" | grep -oE "src=\"/$app/assets/[^\"]+\\.js\"" | head -n 1 | cut -d '"' -f 2)"
