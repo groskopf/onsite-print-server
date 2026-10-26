@@ -136,7 +136,6 @@ plugin, but not Node, Python, the sibling repos, or source builds. Clone this
 repo there, then:
 
 ```sh
-cp .env.production.example .env.production
 # Edit .env.production: choose the published tag for each service.
 openssl rand -base64 32 > secrets/postgres_password
 # Set CR_PAT securely in the environment (classic PAT with read:packages).

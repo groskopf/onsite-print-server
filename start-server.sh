@@ -8,7 +8,7 @@ fi
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 if [[ ! -r .env.production ]]; then
-  echo "Cannot read .env.production; copy .env.production.example and select published tags" >&2
+  echo "Cannot read .env.production; set image tags before starting" >&2
   exit 1
 fi
 
