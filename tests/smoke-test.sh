@@ -5,7 +5,7 @@ base="${1:-http://localhost:8080}"
 base="${base%/}"
 
 # Pinned-release CI can select only apps available in those historical images.
-read -r -a apps <<< "${SMOKE_APPS:-attendee checkin admin}"
+read -r -a apps <<< "${SMOKE_APPS:-attendee checkin admin event}"
 for app in "${apps[@]}"; do
   [[ "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$base/$app")" == 308 ]]
   html="$(curl --fail --silent --show-error "$base/$app/")"

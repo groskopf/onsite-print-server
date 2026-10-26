@@ -9,7 +9,7 @@ repos; server deployments use published images and need only this repo.
 - `../onsite-print-attendee` – http://localhost:8080/attendee/
 - `../onsite-print-checkin` – http://localhost:8080/checkin/
 - `../onsite-print-admin` – http://localhost:8080/admin/
-  and the event-code facilitator workspace at http://localhost:8080/event/
+- `../onsite-print-event` – event-code facilitator workspace, http://localhost:8080/event/
 
 The apps call the same-origin `/api/v2/` API; no separate API hostname or CORS
 configuration is needed. nginx preserves each app's path prefix.
@@ -28,6 +28,8 @@ code, rather than this Compose orchestration repository:
 - [onsite-print-checkin](../onsite-print-checkin/README.md#start-in-the-dev-container):
   Node.js 24, npm, and ESLint.
 - [onsite-print-admin](../onsite-print-admin/README.md#start-in-the-dev-container):
+  Node.js 24, npm, and ESLint.
+- [onsite-print-event](../onsite-print-event/README.md#start-in-the-dev-container):
   Node.js 24, npm, and ESLint.
 
 Install Docker and the VS Code **Dev Containers** extension, open the relevant
@@ -54,7 +56,7 @@ Clone all repos next to each other:
 
 ```sh
 mkdir onsite-print && cd onsite-print
-for r in onsite-print-server onsite-print-web-server onsite-print-backend onsite-print-database onsite-print-attendee onsite-print-checkin onsite-print-admin; do
+for r in onsite-print-server onsite-print-web-server onsite-print-backend onsite-print-database onsite-print-attendee onsite-print-checkin onsite-print-admin onsite-print-event; do
   git clone git@github.com:groskopf/$r.git
 done
 openssl rand -base64 32 > onsite-print-database/secrets/postgres_password
@@ -78,6 +80,7 @@ docker compose -f compose.yaml -f compose.dev.yaml logs -f
 docker compose -f compose.yaml -f compose.dev.yaml exec attendee npm run lint
 docker compose -f compose.yaml -f compose.dev.yaml exec checkin npm run lint
 docker compose -f compose.yaml -f compose.dev.yaml exec admin npm run lint
+docker compose -f compose.yaml -f compose.dev.yaml exec event npm run lint
 docker compose -f compose.yaml -f compose.dev.yaml down
 ```
 
@@ -111,8 +114,8 @@ before publishing again to avoid replacing them.
 
 Set a new `IMAGE_TAG` in each changed repo's `.env`. Set `CR_PAT` securely in your
 environment with GHCR `write:packages` permission; never put credentials in git.
-Then publish images from all six image-owning repos (the web-server repo publishes both nginx
-and Certbot, for seven images total):
+Then publish images from all seven image-owning repos (the web-server repo publishes both nginx
+and Certbot, for eight images total):
 
 ```sh
 bash publish-images.sh
@@ -142,8 +145,8 @@ bash tests/smoke-test.sh https://event.onsite-print.dk
 `CR_PAT` over standard input, and pulls the selected versions. It does not start
 containers or change version files. `GHCR_USERNAME` defaults to `groskopf`; set
 it to the token owner's GitHub username if different. The token's account needs
-read access to all seven packages, including `onsite-print-certbot` and
-`onsite-print-admin`. Never store the PAT in `.env.production` or git.
+read access to all eight packages, including `onsite-print-certbot`,
+`onsite-print-admin`, and `onsite-print-event`. Never store the PAT in `.env.production` or git.
 Docker retains the login; use a credential helper for secure credential storage.
 Public packages can instead be pulled anonymously with
 `docker compose --env-file .env.production -f compose.deploy.yaml pull`.
@@ -331,6 +334,16 @@ Adding the admin site does not add authentication or authorization. Do not expos
 it as a secured administration interface until backend access controls from the
 [security plan](../onsite-print-backend/docs/security.md) are implemented.
 
+### Event deployment
+
+The local stack includes the facilitator event-code app at `/event/`, with Vite
+hot reload in development. Production deployment also includes the event service
+and waits for it to be healthy before starting nginx. Set `EVENT_TAG` in
+`.env.production` to a published `onsite-print-event` version. Publish an updated
+web-server image and set `WEB_SERVER_TAG` to its published version so HTTP and
+HTTPS gateways include the `/event/` route. No images are published by starting
+the local stack.
+
 ### Test coverage
 
 GitHub Actions runs the mocked HTTPS setup test and production-stack smoke test
@@ -345,11 +358,12 @@ test database volume, generated password, and dynamically assigned loopback port
 It does not use deployment data, Certbot, or real certificates. CI removes its
 test containers and volume afterward, and prints stack logs on failure.
 
-The smoke test checks attendee, check-in, and admin by default. Historical
+The smoke test checks attendee, check-in, admin, and event by default. Historical
 pinned-image CI explicitly sets `SMOKE_APPS="attendee checkin"` because those
-releases predate the admin app and gateway route. Admin routing must also be
-smoke-tested against local production builds or a deployment; add it to pinned
-CI when admin and updated gateway release digests are available.
+releases predate the admin and event apps and their gateway routes. Admin and
+event routing must also be smoke-tested against local production builds or a
+deployment; add them to pinned CI when admin, event, and updated gateway
+release digests are available.
 
 For private GHCR packages, grant this repository **Actions read access** under
 each package's **Manage Actions access** settings. CI uses `GITHUB_TOKEN` with

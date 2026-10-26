@@ -7,3 +7,4 @@ include:
   - path: ../onsite-print-attendee/compose.yaml
   - path: ../onsite-print-checkin/compose.yaml
   - path: ../onsite-print-admin/compose.yaml
+  - path: ../onsite-print-event/compose.yaml

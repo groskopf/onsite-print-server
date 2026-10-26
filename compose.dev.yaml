@@ -41,7 +41,19 @@ services:
       - ../onsite-print-admin:/app
       - admin-node-modules:/app/node_modules
 
+  event:
+    build:
+      target: development
+    image: onsite-print-event-dev
+    command: sh -c "npm ci && npm run dev -- --port 80"
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+    volumes:
+      - ../onsite-print-event:/app
+      - event-node-modules:/app/node_modules
+
 volumes:
   attendee-node-modules:
   checkin-node-modules:
   admin-node-modules:
+  event-node-modules:

@@ -21,6 +21,10 @@
 			"path": "../onsite-print-admin"
 		},
 		{
+			"name": "onsite-print-event",
+			"path": "../onsite-print-event"
+		},
+		{
 			"path": "../onsite-print-database"
 		},
 		{

@@ -21,6 +21,8 @@ services:
         condition: service_healthy
       admin:
         condition: service_healthy
+      event:
+        condition: service_healthy
       backend:
         condition: service_healthy
     restart: unless-stopped
@@ -62,6 +64,16 @@ services:
     healthcheck:
       test:
         ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/admin/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  event:
+    image: ghcr.io/groskopf/onsite-print-event:${EVENT_TAG:?Set EVENT_TAG}
+    healthcheck:
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/event/"]
       interval: 10s
       timeout: 5s
       retries: 5
