@@ -17,6 +17,10 @@
 			"path": "../onsite-print-checkin"
 		},
 		{
+			"name": "onsite-print-admin",
+			"path": "../onsite-print-admin"
+		},
+		{
 			"path": "../onsite-print-database"
 		},
 		{

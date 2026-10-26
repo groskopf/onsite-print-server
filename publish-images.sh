@@ -8,7 +8,7 @@ if [[ $# -ne 0 ]]; then
 fi
 
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-for repo in web-server database backend attendee checkin; do
+for repo in web-server database backend attendee checkin admin; do
   script="$root/../onsite-print-$repo/docker-push.sh"
   if [[ ! -r "$script" ]]; then
     echo "Missing publishing script: $script" >&2
@@ -16,6 +16,6 @@ for repo in web-server database backend attendee checkin; do
   fi
 done
 
-for repo in web-server database backend attendee checkin; do
+for repo in web-server database backend attendee checkin admin; do
   bash "$root/../onsite-print-$repo/docker-push.sh"
 done

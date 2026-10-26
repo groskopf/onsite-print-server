@@ -19,6 +19,8 @@ services:
         condition: service_healthy
       checkin:
         condition: service_healthy
+      admin:
+        condition: service_healthy
       backend:
         condition: service_healthy
     restart: unless-stopped
@@ -50,6 +52,16 @@ services:
     healthcheck:
       test:
         ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/checkin/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  admin:
+    image: ghcr.io/groskopf/onsite-print-admin:${ADMIN_TAG:?Set ADMIN_TAG}
+    healthcheck:
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/admin/"]
       interval: 10s
       timeout: 5s
       retries: 5
